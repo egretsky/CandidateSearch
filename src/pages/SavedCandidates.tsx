@@ -1,201 +1,59 @@
 import { useState, useEffect } from "react";
-import { searchGithubUser } from "../api/API";
-import Candidate from "../interfaces/Candidate.interface";
-import { FaRegTrashAlt, FaSortAlphaUp, FaSortAlphaDown } from "react-icons/fa";
+import {Candidate} from "../interfaces/Candidate.interface";
 
-const SavedCandidates = () => {
+const SavedCandidates: React.FC = () => {
   const [savedCandidates, setSavedCandidates] = useState<Candidate[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [sortCriteria, setSortCriteria] = useState("name");
-  const [sortDirection, setSortDirection] = useState("asc");
-  const [filterCriteria, setFilterCriteria] = useState<string>("all");
-  const [filterValue, setFilterValue] = useState<string>("");
 
   useEffect(() => {
-    // fetch the saved candidates from local storage
-    const fetchSavedCandidates = async () => {
-      const savedCandidateData = JSON.parse(
-        localStorage.getItem("savedCandidates") || "[]"
-      );
-      const updatedCandidates: Candidate[] = [];
-      setLoading(true);
-
-      try {
-        for (const savedCandidate of savedCandidateData) {
-          const updatedCandidate = await searchGithubUser(savedCandidate.login);
-          if (updatedCandidate && updatedCandidate.login) {
-            updatedCandidates.push(updatedCandidate);
-          }
-        }
-        setSavedCandidates(updatedCandidates);
-      } catch (error) {
-        setError("Error fetching saved candidates");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchSavedCandidates();
+    const storedCandidates = JSON.parse(localStorage.getItem('savedCandidates') || '[]');
+    setSavedCandidates(storedCandidates);
   }, []);
-
-  // function to remove a candidate from the saved list
-  const removeSavedCandidate = (login: string) => {
-    const updatedCandidates = savedCandidates.filter(
-      (candidate) => candidate.login !== login
-    );
-    setSavedCandidates(updatedCandidates);
-    localStorage.setItem("savedCandidates", JSON.stringify(updatedCandidates));
-  };
-
-  // function to sort the saved candidates
-  const sortSavedCandidates = (criteria: string) => {
-    const direction =
-      sortCriteria === criteria && sortDirection === "asc" ? "desc" : "asc";
-    setSortCriteria(criteria);
-    setSortDirection(direction);
-
-    const sortedCandidates = [...savedCandidates].sort((a, b) => {
-      let valueA = "";
-      let valueB = "";
-
-      if (criteria === "name") {
-        valueA = (a.name || a.login || "").toLowerCase();
-        valueB = (b.name || b.login || "").toLowerCase();
-      } else {
-        valueA = (a[criteria] || "").toString().toLowerCase();
-        valueB = (b[criteria] || "").toString().toLowerCase();
-      }
-
-      if (valueA < valueB) return direction === "asc" ? -1 : 1;
-      if (valueA > valueB) return direction === "asc" ? 1 : -1;
-      return 0;
-    });
-
-    setSavedCandidates(sortedCandidates);
-  };
-
-  // function to render the sort icon so the user knows it's an option
-  const renderSortIcon = (criteria: string) => {
-    if (sortCriteria === criteria) {
-      return sortDirection === "asc" ? <FaSortAlphaUp /> : <FaSortAlphaDown />;
-    }
-    return null;
-  };
-
-  // function to filter the saved candidates
-  const filterSavedCandidates = () => {
-    if (filterCriteria === "all") {
-      return savedCandidates;
-    }
-
-    // filter by selected criteria and the user-input value
-    return savedCandidates.filter((candidate) => {
-      const candidateValue = (candidate[filterCriteria] || "").toLowerCase();
-      return candidateValue.includes(filterValue.toLowerCase());
-    });
-  };
-
-  const filteredCandidates = filterSavedCandidates();
+  
+  // Filter out the candidate to be removed and update local storage
+  const handleRemove = (username: string) => {
+    const updatedCandidates = savedCandidates.filter(candidate => candidate.username !== username); 
+    setSavedCandidates(updatedCandidates); 
+    localStorage.setItem('savedCandidates', JSON.stringify(updatedCandidates)); 
+  };  
 
   return (
-    <div className="container">
-      <h1>Potential Candidates</h1>
-      <div className="filter-container">
-        <label htmlFor="filter">Filter by: </label>
-        <select
-          id="filter"
-          value={filterCriteria}
-          onChange={(e) => setFilterCriteria(e.target.value)}
-        >
-          <option value="all">All</option>
-          <option value="location">Location</option>
-          <option value="company">Company</option>
-        </select>
-        {(filterCriteria === "location" || filterCriteria === "company") && (
-          <input
-            type="text"
-            className="filter-input"
-            placeholder={`Enter ${filterCriteria}...`}
-            value={filterValue}
-            onChange={(e) => setFilterValue(e.target.value)}
-          />
-        )}
-      </div>
-
-      {loading ? (
-        <h1 className="load">Loading...</h1>
-      ) : error ? (
-        <p>{error}</p>
-      ) : filteredCandidates.length > 0 ? (
-        <table className="table">
+    <div className="saved-candidates-page">
+      <h1>Saved Candidates</h1>
+      {savedCandidates.length > 0 ? (
+        <table>
           <thead>
             <tr>
               <th>Image</th>
-              <th
-                className="sortable"
-                onClick={() => sortSavedCandidates("name")}
-              >
-                Name/Login {renderSortIcon("name")}
-              </th>
-              <th
-                className="sortable"
-                onClick={() => sortSavedCandidates("location")}
-              >
-                Location {renderSortIcon("location")}
-              </th>
+              <th>Name</th>
+              <th>Location</th>
               <th>Email</th>
-              <th
-                className="sortable"
-                onClick={() => sortSavedCandidates("company")}
-              >
-                Company {renderSortIcon("company")}
-              </th>
+              <th>Company</th>
               <th>Bio</th>
-              <th>Reject</th>
+              <th>Remove</th> {/* New column for the remove button */}
             </tr>
           </thead>
           <tbody>
-            {filteredCandidates.map((candidate) => (
-              <tr key={candidate.login}>
+            {savedCandidates.map((candidate, index) => (
+              <tr key={index}>
                 <td>
-                  <img
-                    className="table-avatar"
-                    src={candidate.avatar_url}
-                    alt={candidate.login}
-                    style={{
-                      width: "100px",
-                      height: "100px",
-                      border: "1px solid #ccc",
-                    }}
-                  />
+                  <img src={candidate.avatar_url} alt={`${candidate.name}'s avatar`} />
                 </td>
+                <td>{candidate.name}</td>
+                <td>{candidate.location || 'N/A'}</td>
+                <td><a href={`mailto:${candidate.email}`}>{candidate.email || 'N/A'}</a></td>
+                <td>{candidate.company || 'N/A'}</td>
+                <td>{candidate.bio || 'No bio available.'}</td>
                 <td>
-                  <a href={candidate.html_url} target="_blank" rel="noreferrer">
-                    {candidate.name || candidate.login}
-                  </a>
-                </td>
-                <td>{candidate.location || "Location not provided"}</td>
-                <td>{candidate.email || "Email not provided"}</td>
-                <td>{candidate.company || "Company not provided"}</td>
-                <td>{candidate.bio || "Bio not provided"}</td>
-                <td>
-                  <button
-                    onClick={() => removeSavedCandidate(candidate.login)}
-                    className="remove-button"
-                  >
-                    <FaRegTrashAlt />
-                  </button>
+                  <button onClick={() => handleRemove(candidate.username)} className="remove-button">-</button> {/* Remove button */}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       ) : (
-        <h3>No saved candidates yet...</h3>
+        <p>No saved candidates yet.</p>
       )}
     </div>
   );
 };
-
 export default SavedCandidates;

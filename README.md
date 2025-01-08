@@ -4,9 +4,6 @@
 
 Complete a candidate search application that calls the GitHub API and renders data in the browser.
 
-### Render Link
-TBD
-
 ### User Story
 
 ```md
@@ -46,6 +43,9 @@ THEN the next candidate's information should be displayed without saving the cur
 
 ## Installation
 Make sure to install Node packages and dependencies
+
+### Render Link
+TBD
 
 ## License
 This application is covered under the MIT license.
